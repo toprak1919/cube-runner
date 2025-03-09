@@ -1,17 +1,14 @@
 import * as THREE from 'three';
 import { gameState, isMobile } from './game-state.js';
+import { initWorldGenerator, updateChunks, CHUNK_SIZE } from './world-generator.js';
 
 // Generate futuristic structures for the game world
 function generateGameWorld(scene) {
-    // Create different zones with unique architectural styles
-    createCentralHub(scene);
-    createDataTowers(scene);
-    createScienceLabZone(scene);
-    createPowerCoreZone(scene);
-    createObstacleZone(scene);
+    // Initialize the procedural world generator
+    initWorldGenerator(scene, Math.random() * 10000);
     
-    // Add collectible data cores
-    placeCollectibles(scene);
+    // Load initial chunks around the player
+    updateChunks(scene, new THREE.Vector3(0, 0, 0));
     
     // Add powerups
     placePowerups(scene);
@@ -93,60 +90,10 @@ function setupLighting(scene) {
     }
 }
 
-// Create ground
+// Create ground - this is now handled by the chunk system
 function createGround(scene) {
-    const groundSize = 200;
-    const groundGeometry = new THREE.PlaneGeometry(groundSize, groundSize, 100, 100);
-    const groundMaterial = new THREE.MeshStandardMaterial({
-        color: 0x0a0a14,
-        metalness: 0.7,
-        roughness: 0.3,
-        wireframe: false
-    });
-    
-    // Add terrain features to the ground
-    const vertices = groundGeometry.attributes.position.array;
-    for (let i = 0; i < vertices.length; i += 3) {
-        // Don't modify center area for player movement
-        const x = vertices[i];
-        const z = vertices[i + 2];
-        const distFromCenter = Math.sqrt(x * x + z * z);
-        
-        if (distFromCenter > 10) {
-            // Create more interesting terrain with multiple sine waves
-            vertices[i + 1] = Math.sin(x * 0.05) * Math.cos(z * 0.05) * 3 + 
-                            Math.sin(x * 0.1 + z * 0.1) * 2 +
-                            (Math.random() * 0.5);
-            
-            // Make mountains at the edges
-            if (distFromCenter > groundSize * 0.4) {
-                const edgeFactor = (distFromCenter - groundSize * 0.4) / (groundSize * 0.1);
-                vertices[i + 1] += edgeFactor * 20;
-            }
-        }
-    }
-    
-    groundGeometry.computeVertexNormals();
-    
-    const ground = new THREE.Mesh(groundGeometry, groundMaterial);
-    ground.rotation.x = -Math.PI / 2;
-    ground.receiveShadow = true;
-    scene.add(ground);
-    
-    // Grid lines on the ground for futuristic effect - more detailed
-    const gridHelper = new THREE.GridHelper(groundSize, groundSize / 2, 0x0066ff, 0x001133);
-    gridHelper.position.y = 0.1;
-    gridHelper.material.opacity = 0.3;
-    gridHelper.material.transparent = true;
-    scene.add(gridHelper);
-    
-    // Add a second grid for more visual interest
-    const gridHelper2 = new THREE.GridHelper(groundSize * 0.5, 50, 0x00aaff, 0x001133);
-    gridHelper2.position.y = 0.15;
-    gridHelper2.material.opacity = 0.5;
-    gridHelper2.material.transparent = true;
-    gridHelper2.rotation.y = Math.PI / 4; // Rotated for diamond pattern
-    scene.add(gridHelper2);
+    // The ground is now generated in chunks
+    // This function remains for compatibility
 }
 
 // Create a central hub area
@@ -773,13 +720,15 @@ function placePowerups(scene) {
     });
 }
 
-// Create skybox with stars
+// Create enhanced skybox with stars and nebulae
 function createSkybox(scene) {
+    // Star field
     const starGeometry = new THREE.BufferGeometry();
-    const starCount = gameState.device.isMobile ? 2000 : 5000; // Reduced star count for mobile
+    const starCount = gameState.device.isMobile ? 2000 : 8000; // More stars for desktop
     
     const positions = new Float32Array(starCount * 3);
     const starColors = new Float32Array(starCount * 3);
+    const starSizes = new Float32Array(starCount);
     
     for (let i = 0; i < starCount; i++) {
         const i3 = i * 3;
@@ -793,28 +742,206 @@ function createSkybox(scene) {
         positions[i3 + 1] = radius * Math.sin(phi) * Math.sin(theta);
         positions[i3 + 2] = radius * Math.cos(phi);
         
-        // Star colors (mostly white/blue but some variation)
-        const r = Math.random() * 0.3 + 0.7;
-        const g = Math.random() * 0.3 + 0.7;
-        const b = Math.random();
+        // Random star color - more varied
+        let r, g, b;
+        
+        // Majority blue/white stars
+        if (Math.random() > 0.2) {
+            r = Math.random() * 0.3 + 0.7;
+            g = Math.random() * 0.3 + 0.7;
+            b = Math.random() * 0.2 + 0.8;
+        } 
+        // Some red stars
+        else if (Math.random() > 0.5) {
+            r = Math.random() * 0.2 + 0.8;
+            g = Math.random() * 0.3 + 0.4;
+            b = Math.random() * 0.3 + 0.3;
+        }
+        // Some cyan/teal stars
+        else {
+            r = Math.random() * 0.3 + 0.3;
+            g = Math.random() * 0.2 + 0.8;
+            b = Math.random() * 0.2 + 0.8;
+        }
         
         starColors[i3] = r;
         starColors[i3 + 1] = g;
         starColors[i3 + 2] = b;
+        
+        // Varied star sizes
+        starSizes[i] = Math.random() > 0.95 ? 3 + Math.random() * 2 : 0.5 + Math.random();
     }
     
     starGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     starGeometry.setAttribute('color', new THREE.BufferAttribute(starColors, 3));
+    starGeometry.setAttribute('size', new THREE.BufferAttribute(starSizes, 1));
     
-    const starMaterial = new THREE.PointsMaterial({
-        size: 1.5,
-        vertexColors: true,
+    const starMaterial = new THREE.ShaderMaterial({
+        uniforms: {
+            time: { value: 0 }
+        },
+        vertexShader: `
+            attribute float size;
+            attribute vec3 color;
+            varying vec3 vColor;
+            uniform float time;
+            
+            void main() {
+                vColor = color;
+                vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+                
+                // Twinkle effect
+                float twinkle = sin(time * 0.01 + position.x * 0.1 + position.y * 0.1 + position.z * 0.1) * 0.5 + 0.5;
+                gl_PointSize = size * (300.0 / -mvPosition.z) * (0.7 + 0.3 * twinkle);
+                gl_Position = projectionMatrix * mvPosition;
+            }
+        `,
+        fragmentShader: `
+            varying vec3 vColor;
+            
+            void main() {
+                // Create circular point
+                float r = distance(gl_PointCoord, vec2(0.5, 0.5));
+                if (r > 0.5) discard;
+                
+                // Soft edge
+                float alpha = 1.0 - smoothstep(0.3, 0.5, r);
+                
+                gl_FragColor = vec4(vColor, alpha);
+            }
+        `,
         transparent: true,
-        opacity: 0.8
+        depthWrite: false
     });
     
     const starField = new THREE.Points(starGeometry, starMaterial);
     scene.add(starField);
+    
+    // Add subtle nebula-like effects in the background
+    createNebulae(scene);
+    
+    // Animation for the stars
+    const starAnimation = {
+        material: starMaterial,
+        update: function(delta) {
+            this.material.uniforms.time.value += delta;
+            return false; // Animation continues
+        }
+    };
+    
+    window.animations.push(starAnimation);
+}
+
+// Create nebula effects
+function createNebulae(scene) {
+    // Create several nebula planes at different depths
+    const nebulaColors = [
+        new THREE.Color(0x0022ff),
+        new THREE.Color(0x6600ff),
+        new THREE.Color(0xff00aa),
+        new THREE.Color(0x00ffaa)
+    ];
+    
+    for (let i = 0; i < 4; i++) {
+        const size = 400 + i * 200;
+        const nebulaGeometry = new THREE.PlaneGeometry(size, size);
+        
+        // Create custom shader material for the nebula
+        const nebulaMaterial = new THREE.ShaderMaterial({
+            uniforms: {
+                time: { value: 0 },
+                color: { value: nebulaColors[i] },
+                opacity: { value: 0.1 - i * 0.015 }
+            },
+            vertexShader: `
+                varying vec2 vUv;
+                
+                void main() {
+                    vUv = uv;
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                }
+            `,
+            fragmentShader: `
+                uniform float time;
+                uniform vec3 color;
+                uniform float opacity;
+                varying vec2 vUv;
+                
+                // Simplex noise function
+                vec3 permute(vec3 x) { return mod(((x*34.0)+1.0)*x, 289.0); }
+                
+                float snoise(vec2 v) {
+                    const vec4 C = vec4(0.211324865405187, 0.366025403784439,
+                        -0.577350269189626, 0.024390243902439);
+                    vec2 i  = floor(v + dot(v, C.yy));
+                    vec2 x0 = v -   i + dot(i, C.xx);
+                    vec2 i1;
+                    i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
+                    vec4 x12 = x0.xyxy + C.xxzz;
+                    x12.xy -= i1;
+                    i = mod(i, 289.0);
+                    vec3 p = permute(permute(i.y + vec3(0.0, i1.y, 1.0))
+                        + i.x + vec3(0.0, i1.x, 1.0));
+                    vec3 m = max(0.5 - vec3(dot(x0, x0), dot(x12.xy, x12.xy),
+                        dot(x12.zw, x12.zw)), 0.0);
+                    m = m*m;
+                    m = m*m;
+                    vec3 x = 2.0 * fract(p * C.www) - 1.0;
+                    vec3 h = abs(x) - 0.5;
+                    vec3 ox = floor(x + 0.5);
+                    vec3 a0 = x - ox;
+                    m *= 1.79284291400159 - 0.85373472095314 * (a0*a0 + h*h);
+                    vec3 g;
+                    g.x  = a0.x  * x0.x  + h.x  * x0.y;
+                    g.yz = a0.yz * x12.xz + h.yz * x12.yw;
+                    return 130.0 * dot(m, g);
+                }
+                
+                void main() {
+                    vec2 uv = vUv * 2.0 - 1.0;
+                    
+                    // Multiple layers of noise
+                    float scale1 = 2.0;
+                    float scale2 = 4.0;
+                    float scale3 = 8.0;
+                    
+                    float noise1 = snoise(uv * scale1 + time * 0.01);
+                    float noise2 = snoise(uv * scale2 - time * 0.02);
+                    float noise3 = snoise(uv * scale3 + time * 0.03);
+                    
+                    // Combine noise layers
+                    float finalNoise = (noise1 * 0.5 + noise2 * 0.3 + noise3 * 0.2);
+                    finalNoise = pow(finalNoise * 0.5 + 0.5, 2.0);
+                    
+                    // Fade out towards edges
+                    float len = length(uv) * 0.7;
+                    float edge = smoothstep(0.9, 0.4, len);
+                    
+                    // Final color
+                    gl_FragColor = vec4(color, finalNoise * opacity * edge);
+                }
+            `,
+            transparent: true,
+            side: THREE.DoubleSide,
+            depthWrite: false
+        });
+        
+        const nebula = new THREE.Mesh(nebulaGeometry, nebulaMaterial);
+        nebula.position.z = -500 - i * 200;
+        nebula.rotation.z = i * 0.5;
+        scene.add(nebula);
+        
+        // Animation for the nebula
+        const nebulaAnimation = {
+            material: nebulaMaterial,
+            update: function(delta) {
+                this.material.uniforms.time.value += delta;
+                return false; // Animation continues
+            }
+        };
+        
+        window.animations.push(nebulaAnimation);
+    }
 }
 
 export { 

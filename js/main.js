@@ -31,6 +31,7 @@ import {
     createGround, 
     generateGameWorld
 } from './world.js';
+import { updateChunks } from './world-generator.js';
 import {
     loadingState,
     initLoadingScreen,
@@ -161,6 +162,13 @@ function handleWindowResize() {
     window.renderer.setSize(window.innerWidth, window.innerHeight);
 }
 
+// Check if player is approaching chunk boundary and load new chunks
+function updateWorldChunks() {
+    if (window.playerObject && window.scene) {
+        updateChunks(window.scene, window.playerObject.position);
+    }
+}
+
 // Main game loop
 let previousTime = performance.now();
 function animate() {
@@ -172,6 +180,9 @@ function animate() {
     previousTime = currentTime;
     
     if (gameState.isPlaying) {
+        // Update world chunks based on player position
+        updateWorldChunks();
+        
         // Handle player movement
         if (document.pointerLockElement === window.renderer.domElement) {
             // Calculate movement direction based on camera rotation
