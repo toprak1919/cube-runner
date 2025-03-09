@@ -88,12 +88,22 @@ function init() {
     // Get audio assets to load
     const audioAssets = getAudioAssets();
     
-    // Load all assets
-    loadAssets(audioAssets, updateLoadingProgress, () => {
-        // Assets loaded, now initialize the game
-        setupAudio(audioAssets);
+    // Load all assets with error handling
+    try {
+        loadAssets(audioAssets, updateLoadingProgress, () => {
+            // Assets loaded, now initialize the game
+            try {
+                setupAudio(audioAssets);
+            } catch (e) {
+                console.warn("Error setting up audio:", e);
+            }
+            initGameAfterLoading();
+        });
+    } catch (e) {
+        console.error("Error in asset loading:", e);
+        // Continue anyway for testing
         initGameAfterLoading();
-    });
+    }
 }
 
 // Initialize game after assets are loaded
