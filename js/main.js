@@ -45,7 +45,9 @@ import {
     playBackgroundMusic,
     playMenuMusic,
     stopBackgroundMusic,
-    stopMenuMusic
+    stopMenuMusic,
+    setVolume,
+    getVolume
 } from './audio.js';
 
 // Global objects that need to be accessible across modules
