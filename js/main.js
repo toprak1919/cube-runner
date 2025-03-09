@@ -31,6 +31,22 @@ import {
     createGround, 
     generateGameWorld
 } from './world.js';
+import {
+    loadingState,
+    initLoadingScreen,
+    updateLoadingProgress,
+    loadAssets
+} from './loading.js';
+import {
+    initAudio,
+    getAudioAssets,
+    setupAudio,
+    playSound,
+    playBackgroundMusic,
+    playMenuMusic,
+    stopBackgroundMusic,
+    stopMenuMusic
+} from './audio.js';
 
 // Global objects that need to be accessible across modules
 window.scene = null;
@@ -50,8 +66,36 @@ window.updateDashCooldown = updateDashCooldown;
 window.showMessage = showMessage;
 window.gameOver = gameOver;
 
+// Audio functions that need to be accessible globally
+window.playSound = playSound;
+window.playBackgroundMusic = playBackgroundMusic;
+window.playMenuMusic = playMenuMusic;
+window.stopBackgroundMusic = stopBackgroundMusic;
+window.stopMenuMusic = stopMenuMusic;
+window.setVolume = setVolume;
+window.getVolume = getVolume;
+
 // Initialize game
 function init() {
+    // Show loading screen
+    initLoadingScreen();
+    
+    // Initialize audio system
+    initAudio();
+    
+    // Get audio assets to load
+    const audioAssets = getAudioAssets();
+    
+    // Load all assets
+    loadAssets(audioAssets, updateLoadingProgress, () => {
+        // Assets loaded, now initialize the game
+        setupAudio(audioAssets);
+        initGameAfterLoading();
+    });
+}
+
+// Initialize game after assets are loaded
+function initGameAfterLoading() {
     // Initialize scene, camera, and renderer
     const { scene: newScene, camera: newCamera, renderer: newRenderer } = initScene();
     window.scene = newScene;
@@ -90,6 +134,9 @@ function init() {
     
     // Handle window resizing
     window.addEventListener('resize', handleWindowResize);
+    
+    // Play menu music
+    playMenuMusic();
     
     // Start animation loop
     animate();

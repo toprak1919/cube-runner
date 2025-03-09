@@ -1,3 +1,4 @@
+import * as THREE from 'three';
 import { gameState } from './game-state.js';
 
 // Update UI elements
@@ -55,6 +56,90 @@ function showMessage(text, duration = 3000) {
 function setupUIListeners(startGame, restartGame) {
     document.getElementById('start-button').addEventListener('click', startGame);
     document.getElementById('restart-button').addEventListener('click', restartGame);
+    
+    // Settings panel
+    const settingsButton = document.getElementById('settings-button');
+    const backButton = document.getElementById('back-button');
+    const menuPanel = document.getElementById('menu');
+    const settingsPanel = document.getElementById('settings-panel');
+    
+    // Volume control
+    const volumeSlider = document.getElementById('volume-slider');
+    const volumeValue = document.getElementById('volume-value');
+    
+    // Quality selector
+    const qualitySelector = document.getElementById('quality-selector');
+    
+    // Open settings
+    if (settingsButton) {
+        settingsButton.addEventListener('click', () => {
+            // Hide start button and show settings
+            settingsButton.style.display = 'none';
+            document.getElementById('start-button').style.display = 'none';
+            settingsPanel.style.display = 'block';
+        });
+    }
+    
+    // Back to main menu
+    if (backButton) {
+        backButton.addEventListener('click', () => {
+            // Hide settings and show start buttons
+            settingsPanel.style.display = 'none';
+            settingsButton.style.display = 'inline-block';
+            document.getElementById('start-button').style.display = 'inline-block';
+        });
+    }
+    
+    // Volume slider
+    if (volumeSlider) {
+        // Initialize with current value
+        if (window.getVolume) {
+            volumeSlider.value = window.getVolume() * 100;
+            volumeValue.textContent = Math.round(window.getVolume() * 100) + '%';
+        }
+        
+        volumeSlider.addEventListener('input', () => {
+            const value = volumeSlider.value / 100;
+            if (window.setVolume) {
+                window.setVolume(value);
+            }
+            volumeValue.textContent = volumeSlider.value + '%';
+        });
+    }
+    
+    // Quality selector
+    if (qualitySelector) {
+        qualitySelector.addEventListener('change', () => {
+            const quality = qualitySelector.value;
+            setGraphicsQuality(quality);
+        });
+    }
+}
+
+// Set graphics quality
+function setGraphicsQuality(quality) {
+    switch (quality) {
+        case 'low':
+            if (window.renderer) {
+                window.renderer.setPixelRatio(1);
+                window.renderer.shadowMap.enabled = false;
+            }
+            break;
+        case 'medium':
+            if (window.renderer) {
+                window.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+                window.renderer.shadowMap.enabled = !window.gameState.device.isMobile;
+                window.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            }
+            break;
+        case 'high':
+            if (window.renderer) {
+                window.renderer.setPixelRatio(window.devicePixelRatio);
+                window.renderer.shadowMap.enabled = true;
+                window.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            }
+            break;
+    }
 }
 
 export { 
@@ -64,5 +149,6 @@ export {
     updateTimer, 
     updateDashCooldown, 
     showMessage,
-    setupUIListeners
+    setupUIListeners,
+    setGraphicsQuality
 };

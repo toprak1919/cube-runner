@@ -68,6 +68,10 @@ function startGame() {
     // Start timer
     startGameTimer();
     
+    // Stop menu music and play background music
+    window.stopMenuMusic();
+    window.playBackgroundMusic();
+    
     // Show welcome message
     window.showMessage("Welcome to CUBE RUNNER! Collect all data cores before time runs out.", 5000);
 }
@@ -100,6 +104,10 @@ function gameOver() {
     
     // Release pointer lock
     document.exitPointerLock();
+    
+    // Play game over sound and stop background music
+    window.playSound('lose');
+    window.stopBackgroundMusic();
 }
 
 // Victory achieved
@@ -119,6 +127,10 @@ function victoryAchieved() {
     
     // Release pointer lock
     document.exitPointerLock();
+    
+    // Play victory sound and stop background music
+    window.playSound('win');
+    window.stopBackgroundMusic();
     
     gameState.isPlaying = false;
 }
@@ -166,6 +178,9 @@ function restartGame() {
     // Request pointer lock
     window.renderer.domElement.requestPointerLock();
     
+    // Play background music
+    window.playBackgroundMusic();
+    
     // Start timer
     startGameTimer();
     
@@ -173,14 +188,9 @@ function restartGame() {
     window.showMessage("Dimension reset. Collect all data cores!", 3000);
 }
 
-// Play a sound effect
+// Play a sound effect - uses the new audio system
 function playSound(sound) {
-    if (!audio[sound]) return;
-    
-    // Clone and play to allow overlapping sounds
-    const soundClone = audio[sound].cloneNode();
-    soundClone.volume = 0.5;
-    soundClone.play();
+    window.playSound(sound);
 }
 
 export { 
