@@ -10,7 +10,7 @@ const MAX_CACHED_CHUNKS = isMobile ? 9 : 25; // Maximum number of chunks to keep
 const loadedChunks = new Map();
 const activeChunks = new Set();
 
-// Store biome definitions
+// Store biome definitions - moved to top of file to fix reference error
 const biomeTypes = {
     CENTRAL: 'central',
     DATA: 'data',
@@ -151,16 +151,16 @@ function generateWorldMap(worldSeed) {
     
     // Create biome centers - fixed special locations
     const biomeCenters = [
-        { x: 0, z: 0, type: biomeTypes.CENTRAL },
-        { x: 3, z: 3, type: biomeTypes.DATA },
-        { x: -3, z: 3, type: biomeTypes.SCIENCE },
-        { x: 0, z: 4, type: biomeTypes.POWER },
-        { x: -4, z: 0, type: biomeTypes.OBSTACLE },
-        { x: 4, z: -4, type: biomeTypes.MOUNTAIN },
-        { x: -2, z: -4, type: biomeTypes.CRYSTAL },
-        { x: 5, z: 0, type: biomeTypes.VOID },
-        { x: 0, z: -5, type: biomeTypes.NEON },
-        { x: -5, z: -3, type: biomeTypes.CYBER }
+        { x: 0, z: 0, type: 'central' },
+        { x: 3, z: 3, type: 'data' },
+        { x: -3, z: 3, type: 'science' },
+        { x: 0, z: 4, type: 'power' },
+        { x: -4, z: 0, type: 'obstacle' },
+        { x: 4, z: -4, type: 'mountain' },
+        { x: -2, z: -4, type: 'crystal' },
+        { x: 5, z: 0, type: 'void' },
+        { x: 0, z: -5, type: 'neon' },
+        { x: -5, z: -3, type: 'cyber' }
     ];
     
     // Also place random biome centers further out
@@ -177,8 +177,8 @@ function generateWorldMap(worldSeed) {
         }
         
         // Pick a random biome type (excluding CENTRAL)
-        const biomeTypes = Object.values(biomeTypes).filter(t => t !== 'central');
-        const type = biomeTypes[Math.floor(Math.random() * biomeTypes.length)];
+        const availableBiomeTypes = ['data', 'science', 'power', 'obstacle', 'mountain', 'crystal', 'void', 'neon', 'cyber'];
+        const type = availableBiomeTypes[Math.floor(Math.random() * availableBiomeTypes.length)];
         
         biomeCenters.push({ x, z, type });
     }
