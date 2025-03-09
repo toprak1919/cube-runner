@@ -1,4 +1,7 @@
 // Game state module
+// Check if device is mobile
+const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (window.innerWidth <= 800);
+
 const gameState = {
     isPlaying: false,
     score: 0,
@@ -19,6 +22,10 @@ const gameState = {
             cooldown: 0,
             maxCooldown: 300 // frames
         }
+    },
+    device: {
+        isMobile: isMobile,
+        supportsOrientation: 'DeviceOrientationEvent' in window
     }
 };
 
@@ -184,5 +191,6 @@ export {
     gameOver, 
     victoryAchieved, 
     restartGame, 
-    playSound 
+    playSound,
+    isMobile
 };

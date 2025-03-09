@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { gameState } from './game-state.js';
+import { gameState, isMobile } from './game-state.js';
 
 // Generate futuristic structures for the game world
 function generateGameWorld(scene) {
@@ -30,10 +30,22 @@ function initScene() {
     const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
     camera.position.set(0, 2, 0);
     
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    // Optimize renderer settings based on device capabilities
+    const rendererSettings = { 
+        antialias: !gameState.device.isMobile, 
+        powerPreference: 'high-performance'
+    };
+    
+    const renderer = new THREE.WebGLRenderer(rendererSettings);
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.setPixelRatio(window.devicePixelRatio > 1 ? 2 : 1);
+    
+    // Only enable shadows on high-performance devices
+    if (!gameState.device.isMobile) {
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    }
+    
     document.body.appendChild(renderer.domElement);
 
     return { scene, camera, renderer };
@@ -48,25 +60,32 @@ function setupLighting(scene) {
     // Directional light
     const directionalLight = new THREE.DirectionalLight(0x3366ff, 0.8);
     directionalLight.position.set(10, 20, 15);
-    directionalLight.castShadow = true;
-    directionalLight.shadow.mapSize.width = 2048;
-    directionalLight.shadow.mapSize.height = 2048;
+    
+    // Only enable shadow mapping on desktop devices
+    if (!gameState.device.isMobile) {
+        directionalLight.castShadow = true;
+        directionalLight.shadow.mapSize.width = 2048;
+        directionalLight.shadow.mapSize.height = 2048;
+    }
     scene.add(directionalLight);
     
-    // Point lights for futuristic feel
+    // Point lights for futuristic feel - reduce count on mobile
     const lightColors = [0x00ffff, 0x0088ff, 0xff00ff, 0x00ff88];
-    for (let i = 0; i < 6; i++) {
+    const lightCount = gameState.device.isMobile ? 3 : 6;
+    
+    for (let i = 0; i < lightCount; i++) {
         const pointLight = new THREE.PointLight(lightColors[i % lightColors.length], 0.6, 20);
         pointLight.position.set(
-            Math.sin(i * Math.PI / 3) * 15, 
+            Math.sin(i * Math.PI / (lightCount / 2)) * 15, 
             3 + Math.random() * 5, 
-            Math.cos(i * Math.PI / 3) * 15
+            Math.cos(i * Math.PI / (lightCount / 2)) * 15
         );
         scene.add(pointLight);
         
-        // Add a small glowing sphere at each light
+        // Add a small glowing sphere at each light - simplified on mobile
+        const sphereDetail = gameState.device.isMobile ? 8 : 16;
         const lightSphere = new THREE.Mesh(
-            new THREE.SphereGeometry(0.2, 16, 16),
+            new THREE.SphereGeometry(0.2, sphereDetail, sphereDetail),
             new THREE.MeshBasicMaterial({ color: lightColors[i % lightColors.length] })
         );
         lightSphere.position.copy(pointLight.position);
@@ -757,7 +776,7 @@ function placePowerups(scene) {
 // Create skybox with stars
 function createSkybox(scene) {
     const starGeometry = new THREE.BufferGeometry();
-    const starCount = 5000;
+    const starCount = gameState.device.isMobile ? 2000 : 5000; // Reduced star count for mobile
     
     const positions = new Float32Array(starCount * 3);
     const starColors = new Float32Array(starCount * 3);

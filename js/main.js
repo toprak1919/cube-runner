@@ -22,6 +22,10 @@ import {
     setupUIListeners
 } from './ui.js';
 import { 
+    initTouchControls, 
+    initDeviceOrientation
+} from './touch-controls.js';
+import { 
     initScene, 
     setupLighting, 
     createGround, 
@@ -69,6 +73,12 @@ function init() {
     // Set up UI event listeners
     setupUIListeners(startGame, restartGame);
     
+    // Set up touch controls for mobile devices
+    initTouchControls();
+    
+    // Initialize device orientation if available
+    initDeviceOrientation();
+    
     // Generate the game world
     generateGameWorld(window.scene);
     
@@ -78,8 +88,18 @@ function init() {
     updateCollectiblesCounter();
     updateTimer();
     
+    // Handle window resizing
+    window.addEventListener('resize', handleWindowResize);
+    
     // Start animation loop
     animate();
+}
+
+// Handle window resize to maintain aspect ratio
+function handleWindowResize() {
+    window.camera.aspect = window.innerWidth / window.innerHeight;
+    window.camera.updateProjectionMatrix();
+    window.renderer.setSize(window.innerWidth, window.innerHeight);
 }
 
 // Main game loop
