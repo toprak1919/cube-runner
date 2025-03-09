@@ -1,6 +1,37 @@
 import * as THREE from 'three';
 import { gameState, isMobile } from './game-state.js';
 
+// Helper function to check if the current device supports all required features
+function checkPlatformCompatibility() {
+    // Check for WebGL support
+    try {
+        const canvas = document.createElement('canvas');
+        const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+        if (!gl) {
+            console.log("info: WebGL not supported");
+            return false;
+        }
+    } catch (e) {
+        console.log("info: WebGL check failed");
+        return false;
+    }
+    
+    // Check for required browser features
+    if (typeof window.performance === 'undefined' || 
+        typeof window.requestAnimationFrame === 'undefined') {
+        console.log("info: performance or requestAnimationFrame not supported");
+        return false;
+    }
+    
+    return true;
+}
+
+// Log platform compatibility
+const isPlatformCompatible = checkPlatformCompatibility();
+if (!isPlatformCompatible) {
+    console.log("info: platform is not supported");
+}
+
 // Constants for world generation
 const CHUNK_SIZE = 100; // Size of each world chunk
 const RENDER_DISTANCE = isMobile ? 1 : 3; // How many chunks to render in each direction
@@ -237,14 +268,33 @@ let worldMap = null;
 
 // Initialize the world generator
 function initWorldGenerator(scene, worldSeed) {
-    // Create the world map
-    worldMap = generateWorldMap(worldSeed);
-    
-    // Clear any existing chunks
-    loadedChunks.clear();
-    activeChunks.clear();
-    
-    return worldMap;
+    try {
+        // Create the world map
+        worldMap = generateWorldMap(worldSeed);
+        
+        // Clear any existing chunks
+        loadedChunks.clear();
+        activeChunks.clear();
+        
+        return worldMap;
+    } catch (e) {
+        console.error("Error initializing world generator:", e);
+        // Provide a fallback simple world map in case of error
+        return {
+            getBiomeAt: function() { 
+                return biomes['central'] || { 
+                    name: 'Central Hub', 
+                    color: 0x0055aa, 
+                    groundColor: 0x0a0a14,
+                    lightColor: 0x00aaff,
+                    structures: ['platform'], 
+                    collectibleDensity: 0.2,
+                    height: 0
+                };
+            },
+            getHeightAt: function() { return 0; }
+        };
+    }
 }
 
 // Get chunk key from coordinates

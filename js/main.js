@@ -109,11 +109,12 @@ function init() {
 
 // Initialize game after assets are loaded
 function initGameAfterLoading() {
-    // Initialize scene, camera, and renderer
-    const { scene: newScene, camera: newCamera, renderer: newRenderer } = initScene();
-    window.scene = newScene;
-    window.camera = newCamera;
-    window.renderer = newRenderer;
+    try {
+        // Initialize scene, camera, and renderer
+        const { scene: newScene, camera: newCamera, renderer: newRenderer } = initScene();
+        window.scene = newScene;
+        window.camera = newCamera;
+        window.renderer = newRenderer;
     
     // Set up lighting
     setupLighting(window.scene);
@@ -151,8 +152,35 @@ function initGameAfterLoading() {
     // Play menu music
     playMenuMusic();
     
-    // Start animation loop
-    animate();
+        // Start animation loop
+        animate();
+    } catch (e) {
+        console.error("Error initializing game:", e);
+        // Show error message to user
+        document.getElementById('loading-screen')?.remove();
+        const errorDiv = document.createElement('div');
+        errorDiv.id = 'error-message';
+        errorDiv.innerHTML = `
+            <h2>Sorry, there was an error initializing the game</h2>
+            <p>Your browser may not support all required features.</p>
+            <p>Try using a modern browser like Chrome, Firefox, or Edge.</p>
+        `;
+        errorDiv.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0,10,32,0.9);
+            color: #0cf;
+            padding: 30px;
+            border: 2px solid #f00;
+            border-radius: 10px;
+            text-align: center;
+            font-family: Arial, sans-serif;
+            z-index: 9999;
+        `;
+        document.body.appendChild(errorDiv);
+    }
 }
 
 // Handle window resize to maintain aspect ratio
