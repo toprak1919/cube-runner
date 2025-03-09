@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CUBE RUNNER: NEON DIMENSION</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdnjs.cloudflare.com/ajax/libs/three.js/0.150.1/three.module.js"
+      }
+    }
+    </script>
+</head>
+<body>
+    <div id="ui-container">
+        <div id="message-box"></div>
+        <div id="timer" style="display: none;">Time: <span id="time-value">3:00</span></div>
+        <div id="mission-info">
+            <div id="objective">Find all data cores to stabilize the dimension</div>
+            <div id="collectibles-counter">Cores: <span id="collectibles-count">0</span> / <span id="collectibles-total">0</span></div>
+        </div>
+        <div id="hud">
+            <div id="energy-bar"><div id="energy-level"></div></div>
+            <div id="score-display">Score: <span id="score-value">0</span></div>
+        </div>
+        <div id="ability-indicator">
+            DASH
+            <div id="dash-cooldown"></div>
+        </div>
+        <div id="boost-effect"></div>
+        <div id="crosshair"></div>
+        
+        <div id="menu">
+            <h1>CUBE RUNNER: NEON DIMENSION</h1>
+            <p>Navigate the unstable digital dimension and collect all data cores before time runs out!</p>
+            <div>
+                <button id="start-button" class="button">START GAME</button>
+            </div>
+            <p>Controls: WASD to move, SPACE to jump, SHIFT to dash, E for scan pulse</p>
+        </div>
+        
+        <div id="game-over">
+            <h1>DIMENSION COLLAPSE</h1>
+            <h2>Final Score: <span id="final-score">0</span></h2>
+            <button id="restart-button" class="button">TRY AGAIN</button>
+        </div>
+    </div>
+    
+    <!-- Load game module -->
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>
